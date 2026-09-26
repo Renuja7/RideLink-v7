@@ -1,0 +1,39 @@
+# ---- Maven build output ----
+target/
+*.jar
+*.war
+!.mvn/wrapper/maven-wrapper.jar
+
+# ---- Compiled class files ----
+*.class
+
+# ---- IDE files ----
+.idea/
+*.iml
+*.iws
+.vscode/
+.settings/
+.classpath
+.project
+bin/
+
+# ---- OS files ----
+.DS_Store
+Thumbs.db
+
+# ---- Logs ----
+*.log
+logs/
+
+# ---- Environment / secrets (never commit real values) ----
+.env
+.env.local
+*.env
+
+# ---- Docker ----
+# (docker-compose.override.yml is often used for local-only overrides)
+docker-compose.override.yml
+
+# ---- Test / coverage output ----
+/**/target/surefire-reports/
+/**/target/site/

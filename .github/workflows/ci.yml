@@ -1,0 +1,71 @@
+name: RideLink CI
+
+on:
+  push:
+    branches: [ main, develop, "feature/**" ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  build-and-test:
+    name: Build & Test (${{ matrix.service }})
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - account-service
+          - driver-service
+          - ride-service
+          - payment-service
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Build with Maven
+        working-directory: ${{ matrix.service }}
+        run: mvn -B clean compile
+
+      - name: Run unit tests
+        working-directory: ${{ matrix.service }}
+        run: mvn -B test
+
+      - name: Package service
+        working-directory: ${{ matrix.service }}
+        run: mvn -B package -DskipTests
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports-${{ matrix.service }}
+          path: ${{ matrix.service }}/target/surefire-reports/
+
+  docker-build:
+    name: Docker Build Verification
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build account-service image
+        run: docker build -t ridelink/account-service:ci ./account-service
+
+      - name: Build driver-service image
+        run: docker build -t ridelink/driver-service:ci ./driver-service
+
+      - name: Build ride-service image
+        run: docker build -t ridelink/ride-service:ci ./ride-service
+
+      - name: Build payment-service image
+        run: docker build -t ridelink/payment-service:ci ./payment-service

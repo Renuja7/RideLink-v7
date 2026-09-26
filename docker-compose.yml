@@ -1,0 +1,163 @@
+version: "3.9"
+
+services:
+
+  mongo-account:
+    image: mongo:7
+    container_name: ridelink-mongo-account
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_DATABASE: ridelink_account
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_account_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - ridelink-network
+
+  mongo-driver:
+    image: mongo:7
+    container_name: ridelink-mongo-driver
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_DATABASE: ridelink_driver
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongo_driver_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - ridelink-network
+
+  mongo-ride:
+    image: mongo:7
+    container_name: ridelink-mongo-ride
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_DATABASE: ridelink_ride
+    ports:
+      - "27019:27017"
+    volumes:
+      - mongo_ride_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - ridelink-network
+
+  mongo-payment:
+    image: mongo:7
+    container_name: ridelink-mongo-payment
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_DATABASE: ridelink_payment
+    ports:
+      - "27020:27017"
+    volumes:
+      - mongo_payment_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - ridelink-network
+
+  account-service:
+    build:
+      context: ./account-service
+    container_name: ridelink-account-service
+    restart: unless-stopped
+    environment:
+      MONGO_HOST: mongo-account
+      MONGO_PORT: 27017
+      MONGO_DATABASE: ridelink_account
+      JWT_SECRET: ${JWT_SECRET:-RideLinkSuperSecretKeyForJwtSigningMustBeAtLeast256BitsLong123456}
+    ports:
+      - "8081:8081"
+    depends_on:
+      mongo-account:
+        condition: service_healthy
+    networks:
+      - ridelink-network
+
+  driver-service:
+    build:
+      context: ./driver-service
+    container_name: ridelink-driver-service
+    restart: unless-stopped
+    environment:
+      MONGO_HOST: mongo-driver
+      MONGO_PORT: 27017
+      MONGO_DATABASE: ridelink_driver
+      JWT_SECRET: ${JWT_SECRET:-RideLinkSuperSecretKeyForJwtSigningMustBeAtLeast256BitsLong123456}
+    ports:
+      - "8082:8082"
+    depends_on:
+      mongo-driver:
+        condition: service_healthy
+    networks:
+      - ridelink-network
+
+  ride-service:
+    build:
+      context: ./ride-service
+    container_name: ridelink-ride-service
+    restart: unless-stopped
+    environment:
+      MONGO_HOST: mongo-ride
+      MONGO_PORT: 27017
+      MONGO_DATABASE: ridelink_ride
+      JWT_SECRET: ${JWT_SECRET:-RideLinkSuperSecretKeyForJwtSigningMustBeAtLeast256BitsLong123456}
+      DRIVER_SERVICE_URL: http://driver-service:8082
+      PAYMENT_SERVICE_URL: http://payment-service:8084
+    ports:
+      - "8083:8083"
+    depends_on:
+      mongo-ride:
+        condition: service_healthy
+      driver-service:
+        condition: service_started
+      payment-service:
+        condition: service_started
+    networks:
+      - ridelink-network
+
+  payment-service:
+    build:
+      context: ./payment-service
+    container_name: ridelink-payment-service
+    restart: unless-stopped
+    environment:
+      MONGO_HOST: mongo-payment
+      MONGO_PORT: 27017
+      MONGO_DATABASE: ridelink_payment
+      JWT_SECRET: ${JWT_SECRET:-RideLinkSuperSecretKeyForJwtSigningMustBeAtLeast256BitsLong123456}
+    ports:
+      - "8084:8084"
+    depends_on:
+      mongo-payment:
+        condition: service_healthy
+    networks:
+      - ridelink-network
+
+networks:
+  ridelink-network:
+    driver: bridge
+
+volumes:
+  mongo_account_data:
+  mongo_driver_data:
+  mongo_ride_data:
+  mongo_payment_data:
