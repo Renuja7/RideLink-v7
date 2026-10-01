@@ -1,0 +1,14 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+jwt:
+  secret: TestSecretKeyForJwtSigningMustBeAtLeast256BitsLongForTests123456
+services:
+  driver-service:
+    url: http://localhost:8082
+  payment-service:
+    url: http://localhost:8084
